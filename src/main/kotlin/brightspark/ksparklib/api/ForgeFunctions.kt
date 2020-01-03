@@ -1,11 +1,14 @@
 package brightspark.ksparklib.api
 
 import net.alexwells.kottle.FMLKotlinModLoadingContext
+import net.minecraftforge.common.ForgeConfigSpec
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.eventbus.api.Event
 import net.minecraftforge.eventbus.api.EventPriority
 import net.minecraftforge.eventbus.api.GenericEvent
 import net.minecraftforge.fml.InterModComms
+import net.minecraftforge.fml.ModLoadingContext
+import net.minecraftforge.fml.config.ModConfig
 import kotlin.reflect.full.createInstance
 
 /**
@@ -43,3 +46,14 @@ inline fun <reified T : GenericEvent<out F>, reified F> addGenericListener(
  * @see InterModComms.sendTo
  */
 fun <T : Any?> sendIMC(modId: String, method: String, thing: () -> T): Boolean = InterModComms.sendTo(modId, method, thing)
+
+/**
+ * Registers [ForgeConfigSpec] instances for [client], [common] and [server]
+ */
+fun registerConfig(client: ForgeConfigSpec? = null, common: ForgeConfigSpec? = null, server: ForgeConfigSpec? = null) {
+	ModLoadingContext.get().apply {
+		client?.let { registerConfig(ModConfig.Type.CLIENT, it) }
+		common?.let { registerConfig(ModConfig.Type.COMMON, it) }
+		server?.let { registerConfig(ModConfig.Type.SERVER, it) }
+	}
+}
