@@ -14,6 +14,7 @@ import net.minecraftforge.fml.InterModComms
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.config.ModConfig
 import java.util.concurrent.Callable
+import java.util.function.Supplier
 import kotlin.reflect.full.createInstance
 
 /**
@@ -102,3 +103,9 @@ fun <R> callWhenOnClient(op: () -> R): R = DistExecutor.callWhenOn(Dist.CLIENT) 
  * Runs and returns the result of the [op] when on [Dist.DEDICATED_SERVER]
  */
 fun <R> callWhenOnServer(op: () -> R): R = DistExecutor.callWhenOn(Dist.DEDICATED_SERVER) { Callable(op) }
+
+/**
+ * Runs and returns the result of the appropriate operation ([clientOp] or [serverOp]) depending on the distribution
+ */
+fun <R> runForDist(clientOp: () -> R, serverOp: () -> R): R =
+	DistExecutor.runForDist({ Supplier(clientOp) }, { Supplier(serverOp) })
