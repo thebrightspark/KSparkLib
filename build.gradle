@@ -99,7 +99,6 @@ dependencies {
 
     compile "kottle:Kottle:${project.kottle_version}"
     mod "kottle:Kottle:${project.kottle_version}"
-//    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 
     // You may put jars on which you depend on in ./libs or you may define them like so..
     // compile "some.group:artifact:version:classifier"
