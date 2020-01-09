@@ -18,7 +18,7 @@ fun Any.getLogger(): Logger = LogManager.getLogger(this)
 /**
  * Registers this object to the event bus
  */
-fun Any.eventBusRegister() = MinecraftForge.EVENT_BUS.register(this)
+fun Any.forgeEventBusRegister() = MinecraftForge.EVENT_BUS.register(this)
 
 /**
  * Processes each [net.minecraftforge.fml.InterModComms.IMCMessage] with the [function] after filtering them using the

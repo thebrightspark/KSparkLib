@@ -16,17 +16,16 @@ import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.config.ModConfig
 import java.util.concurrent.Callable
 import java.util.function.Supplier
-import kotlin.reflect.full.createInstance
 
 /**
  * Registers the [target] object to the event bus
  */
-fun eventBusRegister(target: Any) = MinecraftForge.EVENT_BUS.register(target)
+fun forgeEventBusRegister(target: Any) = MinecraftForge.EVENT_BUS.register(target)
 
 /**
  * Registers the class [T] to the event bus
  */
-inline fun <reified T : Any> eventBusRegister() = eventBusRegister(T::class.run { objectInstance ?: createInstance() })
+inline fun <reified T : Any> forgeEventBusRegister() = forgeEventBusRegister(T::class.run { objectInstance ?: java })
 
 /**
  * Registers the [function] as an event listener for the event type [T] with the given optional [priority] and
