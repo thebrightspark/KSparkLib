@@ -2,6 +2,7 @@ package brightspark.ksparklib.api
 
 import net.alexwells.kottle.FMLKotlinModLoadingContext
 import net.minecraft.item.ItemStack
+import net.minecraft.item.crafting.Ingredient
 import net.minecraft.util.NonNullList
 import net.minecraftforge.api.distmarker.Dist
 import net.minecraftforge.common.ForgeConfigSpec
@@ -73,6 +74,16 @@ fun stackList(vararg stacks: ItemStack) = NonNullList.from(ItemStack.EMPTY, *sta
  * Creates a new [NonNullList] with the given [stacks]
  */
 fun stackList(stacks: Collection<ItemStack>) = stackList(*stacks.toTypedArray())
+
+/**
+ * Creates a new [NonNullList] with the given [ingredients]
+ */
+fun ingredientList(vararg ingredients: Ingredient) = NonNullList.from(Ingredient.EMPTY, *ingredients)
+
+/**
+ * Creates a new [NonNullList] with the given [ingredients]
+ */
+fun ingredientList(ingredients: Collection<Ingredient>) = ingredientList(*ingredients.toTypedArray())
 
 /**
  * Runs the [op] when on the [dist]
