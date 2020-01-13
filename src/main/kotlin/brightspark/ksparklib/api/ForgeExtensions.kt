@@ -63,5 +63,4 @@ fun ItemStack.damageItem(world: World, entity: LivingEntity?, amount: Int = 1) =
 /**
  * Converts this [Stream] of [BlockPos] to a [List] safely
  */
-fun Stream<BlockPos>.toBlockPosList(): List<BlockPos> =
-	this.map { if (it is BlockPos.MutableBlockPos) BlockPos(it) else it }.toList()
+fun Stream<BlockPos>.toBlockPosList(): List<BlockPos> = this.map { it.toImmutable() }.toList()
