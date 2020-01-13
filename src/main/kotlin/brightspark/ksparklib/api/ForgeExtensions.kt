@@ -3,12 +3,15 @@ package brightspark.ksparklib.api
 import net.minecraft.entity.LivingEntity
 import net.minecraft.inventory.EquipmentSlotType
 import net.minecraft.item.ItemStack
+import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.util.function.Supplier
+import java.util.stream.Stream
+import kotlin.streams.toList
 
 /**
  * Gets a logger for this class
@@ -56,3 +59,9 @@ fun ItemStack.damageItem(world: World, amount: Int = 1) {
  */
 fun ItemStack.damageItem(world: World, entity: LivingEntity?, amount: Int = 1) =
 	if (entity == null) stack.damageItem(world, amount) else stack.damageItem(entity, amount)
+
+/**
+ * Converts this [Stream] of [BlockPos] to a [List] safely
+ */
+fun Stream<BlockPos>.toBlockPosList(): List<BlockPos> =
+	this.map { if (it is BlockPos.MutableBlockPos) BlockPos(it) else it }.toList()
