@@ -29,9 +29,9 @@ inline fun <reified T : Any> forgeEventBusRegister() = forgeEventBusRegister(T::
 
 /**
  * Registers the [function] as an event listener for the event type [T] with the given optional [priority] and
- * [receiveCancelled] properties
+ * [receiveCancelled] properties to the mod event bus
  */
-inline fun <reified T : Event> addListener(
+inline fun <reified T : Event> addModListener(
 	priority: EventPriority = EventPriority.NORMAL,
 	receiveCancelled: Boolean = false,
 	noinline function: (T) -> Unit
@@ -39,13 +39,33 @@ inline fun <reified T : Event> addListener(
 
 /**
  * Registers the [function] as a generic event listener for the event type [T] with class filter type [F] with the given
- * optional [priority] and [receiveCancelled] properties
+ * optional [priority] and [receiveCancelled] properties to the mod event bus
  */
-inline fun <reified T : GenericEvent<out F>, reified F> addGenericListener(
+inline fun <reified T : GenericEvent<out F>, reified F> addModGenericListener(
 	priority: EventPriority = EventPriority.NORMAL,
 	receiveCancelled: Boolean = false,
 	noinline function: (T) -> Unit
 ) = FMLKotlinModLoadingContext.get().modEventBus.addGenericListener(F::class.java, priority, receiveCancelled, T::class.java, function)
+
+/**
+ * Registers the [function] as an event listener for the event type [T] with the given optional [priority] and
+ * [receiveCancelled] properties to the Forge event bus
+ */
+inline fun <reified T : Event> addForgeListener(
+	priority: EventPriority = EventPriority.NORMAL,
+	receiveCancelled: Boolean = false,
+	noinline function: (T) -> Unit
+) = MinecraftForge.EVENT_BUS.addListener(priority, receiveCancelled, T::class.java, function)
+
+/**
+ * Registers the [function] as a generic event listener for the event type [T] with class filter type [F] with the given
+ * optional [priority] and [receiveCancelled] properties to the Forge event bus
+ */
+inline fun <reified T : GenericEvent<out F>, reified F> addForgeGenericListener(
+	priority: EventPriority = EventPriority.NORMAL,
+	receiveCancelled: Boolean = false,
+	noinline function: (T) -> Unit
+) = MinecraftForge.EVENT_BUS.addGenericListener(F::class.java, priority, receiveCancelled, T::class.java, function)
 
 /**
  * Sends an IMC to the mod [modId]
