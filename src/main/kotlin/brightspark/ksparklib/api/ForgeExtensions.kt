@@ -64,3 +64,13 @@ fun ItemStack.damageItem(world: World, entity: LivingEntity?, amount: Int = 1) =
  * Converts this [Stream] of [BlockPos] to a [List] safely
  */
 fun Stream<BlockPos>.toBlockPosList(): List<BlockPos> = this.map { it.toImmutable() }.toList()
+
+/**
+ * Runs the [op] if this [World] is on the client side
+ */
+inline infix fun <R> World.onClient(op: World.() -> R): R? = if (this.isRemote) op(this) else null
+
+/**
+ * Runs the [op] if this [World] is on the server side
+ */
+inline infix fun <R> World.onServer(op: World.() -> R): R? = if (!this.isRemote) op(this) else null
