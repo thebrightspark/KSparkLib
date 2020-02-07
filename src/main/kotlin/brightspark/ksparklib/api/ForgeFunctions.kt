@@ -3,10 +3,14 @@ package brightspark.ksparklib.api
 import net.alexwells.kottle.FMLKotlinModLoadingContext
 import net.minecraft.item.ItemStack
 import net.minecraft.item.crafting.Ingredient
+import net.minecraft.nbt.CompoundNBT
 import net.minecraft.util.NonNullList
 import net.minecraftforge.api.distmarker.Dist
 import net.minecraftforge.common.ForgeConfigSpec
 import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.common.capabilities.Capability
+import net.minecraftforge.common.capabilities.CapabilityManager
+import net.minecraftforge.common.util.INBTSerializable
 import net.minecraftforge.eventbus.api.Event
 import net.minecraftforge.eventbus.api.EventPriority
 import net.minecraftforge.eventbus.api.GenericEvent
@@ -82,6 +86,21 @@ fun registerConfig(client: ForgeConfigSpec? = null, common: ForgeConfigSpec? = n
 		common?.let { registerConfig(ModConfig.Type.COMMON, it) }
 		server?.let { registerConfig(ModConfig.Type.SERVER, it) }
 	}
+}
+
+/**
+ * Registers a capability of type [T] with the [storage] and [factory]
+ */
+inline fun <reified T> regCapability(storage: Capability.IStorage<T>, noinline factory: () -> T) {
+	CapabilityManager.INSTANCE.register(T::class.java, storage, factory)
+}
+
+/**
+ * Registers a capability of type [T] which implements [INBTSerializable] with the [factory] and a default
+ * [net.minecraftforge.common.capabilities.Capability.IStorage] implementation that delegates to the capability
+ */
+inline fun <reified T : INBTSerializable<CompoundNBT>> regCapability(noinline factory: () -> T) {
+	CapabilityManager.INSTANCE.register(T::class.java, DelegatingCapabilityStorage<T>(), factory)
 }
 
 /**
