@@ -3,9 +3,12 @@ package brightspark.ksparklib.api
 import net.minecraft.entity.LivingEntity
 import net.minecraft.inventory.EquipmentSlotType
 import net.minecraft.item.ItemStack
+import net.minecraft.util.Direction
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.common.capabilities.Capability
+import net.minecraftforge.common.capabilities.ICapabilityProvider
 import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -74,3 +77,9 @@ inline infix fun <R> World.onClient(op: World.() -> R): R? = if (this.isRemote) 
  * Runs the [op] if this [World] is on the server side
  */
 inline infix fun <R> World.onServer(op: World.() -> R): R? = if (!this.isRemote) op(this) else null
+
+/**
+ * Gets the capability instance [T] from [capable] with the optional [side] and throws an error if it does not exist
+ */
+fun <T> Capability<T>.get(capable: ICapabilityProvider, side: Direction? = null): T =
+	capable.getCapability(this, side).orElseThrow { RuntimeException("Capability $name does not exist in provider $capable") }

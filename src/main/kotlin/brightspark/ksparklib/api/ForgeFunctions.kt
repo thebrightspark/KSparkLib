@@ -5,12 +5,15 @@ import net.minecraft.item.ItemStack
 import net.minecraft.item.crafting.Ingredient
 import net.minecraft.nbt.CompoundNBT
 import net.minecraft.util.NonNullList
+import net.minecraft.util.ResourceLocation
 import net.minecraftforge.api.distmarker.Dist
 import net.minecraftforge.common.ForgeConfigSpec
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.common.capabilities.Capability
 import net.minecraftforge.common.capabilities.CapabilityManager
+import net.minecraftforge.common.capabilities.ICapabilityProvider
 import net.minecraftforge.common.util.INBTSerializable
+import net.minecraftforge.event.AttachCapabilitiesEvent
 import net.minecraftforge.eventbus.api.Event
 import net.minecraftforge.eventbus.api.EventPriority
 import net.minecraftforge.eventbus.api.GenericEvent
@@ -20,16 +23,18 @@ import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.config.ModConfig
 import java.util.concurrent.Callable
 import java.util.function.Supplier
+import kotlin.reflect.full.createInstance
 
 /**
  * Registers the [target] object to the event bus
  */
-fun forgeEventBusRegister(target: Any) = MinecraftForge.EVENT_BUS.register(target)
+fun forgeEventBusRegister(target: Any): Unit = MinecraftForge.EVENT_BUS.register(target)
 
 /**
  * Registers the class [T] to the event bus
  */
-inline fun <reified T : Any> forgeEventBusRegister() = forgeEventBusRegister(T::class.run { objectInstance ?: java })
+inline fun <reified T : Any> forgeEventBusRegister(): Unit =
+	forgeEventBusRegister(T::class.run { objectInstance ?: java })
 
 /**
  * Registers the [function] as an event listener for the event type [T] with the given optional [priority] and
@@ -39,7 +44,7 @@ inline fun <reified T : Event> addModListener(
 	priority: EventPriority = EventPriority.NORMAL,
 	receiveCancelled: Boolean = false,
 	noinline function: (T) -> Unit
-) = FMLKotlinModLoadingContext.get().modEventBus.addListener(priority, receiveCancelled, T::class.java, function)
+): Unit = FMLKotlinModLoadingContext.get().modEventBus.addListener(priority, receiveCancelled, T::class.java, function)
 
 /**
  * Registers the [function] as a generic event listener for the event type [T] with class filter type [F] with the given
@@ -49,7 +54,7 @@ inline fun <reified T : GenericEvent<out F>, reified F> addModGenericListener(
 	priority: EventPriority = EventPriority.NORMAL,
 	receiveCancelled: Boolean = false,
 	noinline function: (T) -> Unit
-) = FMLKotlinModLoadingContext.get().modEventBus.addGenericListener(F::class.java, priority, receiveCancelled, T::class.java, function)
+): Unit = FMLKotlinModLoadingContext.get().modEventBus.addGenericListener(F::class.java, priority, receiveCancelled, T::class.java, function)
 
 /**
  * Registers the [function] as an event listener for the event type [T] with the given optional [priority] and
@@ -59,7 +64,7 @@ inline fun <reified T : Event> addForgeListener(
 	priority: EventPriority = EventPriority.NORMAL,
 	receiveCancelled: Boolean = false,
 	noinline function: (T) -> Unit
-) = MinecraftForge.EVENT_BUS.addListener(priority, receiveCancelled, T::class.java, function)
+): Unit = MinecraftForge.EVENT_BUS.addListener(priority, receiveCancelled, T::class.java, function)
 
 /**
  * Registers the [function] as a generic event listener for the event type [T] with class filter type [F] with the given
@@ -69,7 +74,7 @@ inline fun <reified T : GenericEvent<out F>, reified F> addForgeGenericListener(
 	priority: EventPriority = EventPriority.NORMAL,
 	receiveCancelled: Boolean = false,
 	noinline function: (T) -> Unit
-) = MinecraftForge.EVENT_BUS.addGenericListener(F::class.java, priority, receiveCancelled, T::class.java, function)
+): Unit = MinecraftForge.EVENT_BUS.addGenericListener(F::class.java, priority, receiveCancelled, T::class.java, function)
 
 /**
  * Sends an IMC to the mod [modId]
@@ -89,18 +94,57 @@ fun registerConfig(client: ForgeConfigSpec? = null, common: ForgeConfigSpec? = n
 }
 
 /**
+ * Adds a listener for [AttachCapabilitiesEvent] to attach the capability provided by the [PROVIDER] to objects of the
+ * type [ATTACH] if it doesn't already have the capability and [attachPredicate] returns true
+ */
+inline fun <reified ATTACH, reified PROVIDER : ICapabilityProvider> regAttachCapability(
+	key: ResourceLocation,
+	crossinline attachPredicate: (AttachCapabilitiesEvent<ATTACH>) -> Boolean = { true }
+): Unit = addForgeListener<AttachCapabilitiesEvent<ATTACH>> {
+	if (!it.capabilities.containsKey(key) && attachPredicate(it))
+		it.addCapability(key, PROVIDER::class.createInstance())
+}
+
+/**
  * Registers a capability of type [T] with the [storage] and [factory]
  */
-inline fun <reified T> regCapability(storage: Capability.IStorage<T>, noinline factory: () -> T) {
+inline fun <reified T> regCapability(storage: Capability.IStorage<T>, noinline factory: () -> T): Unit =
 	CapabilityManager.INSTANCE.register(T::class.java, storage, factory)
+
+/**
+ * Registers a capability of type [CAP] with the [storage] and [factory].
+ * Also adds a listener for [AttachCapabilitiesEvent] to attach to types of [ATTACH].
+ */
+inline fun <reified CAP, reified ATTACH, reified PROVIDER : ICapabilityProvider> regCapability(
+	storage: Capability.IStorage<CAP>,
+	noinline factory: () -> CAP,
+	key: ResourceLocation,
+	crossinline attachPredicate: (AttachCapabilitiesEvent<ATTACH>) -> Boolean = { true }
+) {
+	regCapability(storage, factory)
+	regAttachCapability<ATTACH, PROVIDER>(key, attachPredicate)
 }
 
 /**
  * Registers a capability of type [T] which implements [INBTSerializable] with the [factory] and a default
  * [net.minecraftforge.common.capabilities.Capability.IStorage] implementation that delegates to the capability
  */
-inline fun <reified T : INBTSerializable<CompoundNBT>> regCapability(noinline factory: () -> T) {
+inline fun <reified T : INBTSerializable<CompoundNBT>> regCapability(noinline factory: () -> T): Unit =
 	CapabilityManager.INSTANCE.register(T::class.java, DelegatingCapabilityStorage<T>(), factory)
+
+/**
+ * Registers a capability of type [CAP] which implements [INBTSerializable] with the [factory] and a default
+ * [net.minecraftforge.common.capabilities.Capability.IStorage] implementation that delegates to the capability.
+ *
+ * Also adds a listener for [AttachCapabilitiesEvent] to attach to types of [ATTACH].
+ */
+inline fun <reified CAP : INBTSerializable<CompoundNBT>, reified ATTACH, reified PROVIDER : ICapabilityProvider> regCapability(
+	noinline factory: () -> CAP,
+	key: ResourceLocation,
+	crossinline attachPredicate: (AttachCapabilitiesEvent<ATTACH>) -> Boolean = { true }
+) {
+	regCapability(factory)
+	regAttachCapability<ATTACH, PROVIDER>(key, attachPredicate)
 }
 
 /**
@@ -126,17 +170,17 @@ fun ingredientList(ingredients: Collection<Ingredient>) = ingredientList(*ingred
 /**
  * Runs the [op] when on the [dist]
  */
-fun runWhenOn(dist: Dist, op: () -> Unit) = DistExecutor.runWhenOn(dist) { Runnable(op) }
+fun runWhenOn(dist: Dist, op: () -> Unit): Unit = DistExecutor.runWhenOn(dist) { Runnable(op) }
 
 /**
  * Runs the [op] when on [Dist.CLIENT]
  */
-fun runWhenOnClient(op: () -> Unit) = DistExecutor.runWhenOn(Dist.CLIENT) { Runnable(op) }
+fun runWhenOnClient(op: () -> Unit): Unit = DistExecutor.runWhenOn(Dist.CLIENT) { Runnable(op) }
 
 /**
  * Runs the [op] when on [Dist.DEDICATED_SERVER]
  */
-fun runWhenOnServer(op: () -> Unit) = DistExecutor.runWhenOn(Dist.DEDICATED_SERVER) { Runnable(op) }
+fun runWhenOnServer(op: () -> Unit): Unit = DistExecutor.runWhenOn(Dist.DEDICATED_SERVER) { Runnable(op) }
 
 /**
  * Runs and returns the result of the [op] when on the [dist]
