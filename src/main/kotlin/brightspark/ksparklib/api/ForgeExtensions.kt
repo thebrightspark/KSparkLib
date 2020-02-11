@@ -10,10 +10,12 @@ import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.common.capabilities.Capability
 import net.minecraftforge.common.capabilities.ICapabilityProvider
 import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent
+import net.minecraftforge.fml.network.simple.SimpleChannel
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.util.function.Supplier
 import java.util.stream.Stream
+import kotlin.reflect.full.createInstance
 import kotlin.streams.toList
 
 /**
@@ -83,3 +85,17 @@ inline infix fun <R> World.onServer(op: World.() -> R): R? = if (!this.isRemote)
  */
 fun <T> Capability<T>.get(capable: ICapabilityProvider, side: Direction? = null): T =
 	capable.getCapability(this, side).orElseThrow { RuntimeException("Capability $name does not exist in provider $capable") }
+
+/**
+ * Registers a [Message] with the given [index]
+ */
+@Suppress("INACCESSIBLE_TYPE")
+inline fun <reified T : Message> SimpleChannel.registerMessage(index: Int) {
+	this.registerMessage(
+		index,
+		T::class.java,
+		{ message, buffer -> message.encode(buffer) },
+		{ message -> T::class.createInstance().apply { decode(message) } },
+		{ message, context -> message.consume(context) }
+	)
+}
