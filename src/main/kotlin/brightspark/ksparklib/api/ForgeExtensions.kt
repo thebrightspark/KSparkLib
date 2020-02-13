@@ -1,20 +1,29 @@
 package brightspark.ksparklib.api
 
+import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.player.ServerPlayerEntity
 import net.minecraft.inventory.EquipmentSlotType
 import net.minecraft.item.ItemStack
+import net.minecraft.network.NetworkManager
 import net.minecraft.util.Direction
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.Vec3i
 import net.minecraft.world.World
+import net.minecraft.world.chunk.Chunk
+import net.minecraft.world.dimension.DimensionType
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.common.capabilities.Capability
 import net.minecraftforge.common.capabilities.ICapabilityProvider
 import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent
+import net.minecraftforge.fml.network.PacketDistributor
 import net.minecraftforge.fml.network.simple.SimpleChannel
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.util.function.Supplier
 import java.util.stream.Stream
+import kotlin.reflect.KClass
 import kotlin.reflect.full.createInstance
 import kotlin.streams.toList
 
@@ -90,6 +99,20 @@ fun <T> Capability<T>.get(capable: ICapabilityProvider, side: Direction? = null)
  * Registers a [Message] with the given [index]
  */
 @Suppress("INACCESSIBLE_TYPE")
+fun <T : Message> SimpleChannel.registerMessage(messageClass: KClass<T>, index: Int) {
+	this.registerMessage(
+		index,
+		messageClass.java,
+		{ message, buffer -> message.encode(buffer) },
+		{ message -> messageClass.createInstance().apply { decode(message) } },
+		{ message, context -> message.consume(context) }
+	)
+}
+
+/**
+ * Registers a [Message] with the given [index]
+ */
+@Suppress("INACCESSIBLE_TYPE")
 inline fun <reified T : Message> SimpleChannel.registerMessage(index: Int) {
 	this.registerMessage(
 		index,
@@ -99,3 +122,64 @@ inline fun <reified T : Message> SimpleChannel.registerMessage(index: Int) {
 		{ message, context -> message.consume(context) }
 	)
 }
+
+/**
+ * Sends the [message] to the [player] client
+ */
+fun SimpleChannel.sendToPlayer(message: Message, player: ServerPlayerEntity): Unit =
+	this.send(PacketDistributor.PLAYER.with { player }, message)
+
+/**
+ * Send the [message] to all clients in the [dimensionType]
+ */
+fun SimpleChannel.sendToDimension(message: Message, dimensionType: DimensionType): Unit =
+	this.send(PacketDistributor.DIMENSION.with { dimensionType }, message)
+
+/**
+ * Send the [message] to all clients near the [targetPoint]
+ */
+fun SimpleChannel.sendToNear(message: Message, targetPoint: PacketDistributor.TargetPoint): Unit =
+	this.send(PacketDistributor.NEAR.with { targetPoint }, message)
+
+/**
+ * Send the [message] to all clients near the [pos] and [dimensionType] within the [range] and optionally excluding the
+ * given [excluded] player
+ */
+fun SimpleChannel.sendToNear(message: Message, pos: Vec3d, range: Double, dimensionType: DimensionType, excluded: ServerPlayerEntity? = null): Unit =
+	sendToNear(message, PacketDistributor.TargetPoint(excluded, pos.x, pos.y, pos.z, range, dimensionType))
+
+/**
+ * Send the [message] to all clients near the [pos] and [dimensionType] within the [range] and optionally excluding the
+ * given [excluded] player
+ */
+fun SimpleChannel.sendToNear(message: Message, pos: Vec3i, range: Double, dimensionType: DimensionType, excluded: ServerPlayerEntity? = null): Unit =
+	sendToNear(message, PacketDistributor.TargetPoint(excluded, pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble(), range, dimensionType))
+
+/**
+ * Sends the [message] to all clients tracking the [entity]
+ */
+fun SimpleChannel.sendToTrackingEntity(message: Message, entity: Entity): Unit =
+	this.send(PacketDistributor.TRACKING_ENTITY.with { entity }, message)
+
+/**
+ * Sends the [message] to all clients tracking the [entity] and to the entity itself if it's a [ServerPlayerEntity]
+ */
+fun SimpleChannel.sendToTrackingEntityAndSelf(message: Message, entity: Entity): Unit =
+	this.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with { entity }, message)
+
+/**
+ * Sends the [message] to all clients tracking the [chunk]
+ */
+fun SimpleChannel.sendToTrackingChunk(message: Message, chunk: Chunk): Unit =
+	this.send(PacketDistributor.TRACKING_CHUNK.with { chunk }, message)
+
+/**
+ * Sends the [message] to the given [networkManagers]
+ */
+fun SimpleChannel.sendToNetworkManagers(message: Message, vararg networkManagers: NetworkManager): Unit =
+	this.send(PacketDistributor.NMLIST.with { networkManagers.toList() }, message)
+
+/**
+ * Sends the [message] to all clients
+ */
+fun SimpleChannel.sendToAll(message: Message): Unit = this.send(PacketDistributor.ALL.noArg(), message)
