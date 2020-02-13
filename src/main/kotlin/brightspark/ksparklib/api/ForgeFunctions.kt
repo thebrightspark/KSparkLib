@@ -21,8 +21,11 @@ import net.minecraftforge.fml.DistExecutor
 import net.minecraftforge.fml.InterModComms
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.config.ModConfig
+import net.minecraftforge.fml.network.NetworkRegistry
+import net.minecraftforge.fml.network.simple.SimpleChannel
 import java.util.concurrent.Callable
 import java.util.function.Supplier
+import kotlin.reflect.KClass
 import kotlin.reflect.full.createInstance
 
 /**
@@ -146,6 +149,21 @@ inline fun <reified CAP : INBTSerializable<CompoundNBT>, reified ATTACH, reified
 	regCapability(factory)
 	regAttachCapability<ATTACH, PROVIDER>(key, attachPredicate)
 }
+
+/**
+ * Registers and returns a new [SimpleChannel] with the given [name] and [protocolVersion], then registers all
+ * [messages] supplied
+ */
+fun regSimpleChannel(
+	name: ResourceLocation,
+	protocolVersion: String,
+	clientAcceptedVersions: (String) -> Boolean = { it == protocolVersion },
+	serverAcceptedVersions: (String) -> Boolean = { it == protocolVersion },
+	messages: Array<KClass<out Message>>
+): SimpleChannel =
+	NetworkRegistry.newSimpleChannel(name, { protocolVersion }, clientAcceptedVersions, serverAcceptedVersions).apply {
+		messages.forEachIndexed { index, kClass -> registerMessage(kClass, index) }
+	}
 
 /**
  * Creates a new [NonNullList] with the given [stacks]
