@@ -6,10 +6,13 @@ import net.minecraft.entity.player.ServerPlayerEntity
 import net.minecraft.inventory.EquipmentSlotType
 import net.minecraft.item.ItemStack
 import net.minecraft.network.NetworkManager
+import net.minecraft.network.PacketBuffer
 import net.minecraft.util.Direction
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
+import net.minecraft.util.text.ITextComponent
+import net.minecraft.util.text.TranslationTextComponent
 import net.minecraft.world.World
 import net.minecraft.world.chunk.Chunk
 import net.minecraft.world.dimension.DimensionType
@@ -183,3 +186,15 @@ fun SimpleChannel.sendToNetworkManagers(message: Message, vararg networkManagers
  * Sends the [message] to all clients
  */
 fun SimpleChannel.sendToAll(message: Message): Unit = this.send(PacketDistributor.ALL.noArg(), message)
+
+/**
+ * Adds a new [TranslationTextComponent] to the end of the sibling list, with the specified translation key and
+ * arguments. Same as calling [ITextComponent.appendSibling] with a new [TranslationTextComponent].
+ */
+fun ITextComponent.appendTranslation(translationKey: String, vararg args: Any): ITextComponent =
+	this.appendSibling(TranslationTextComponent(translationKey, args))
+
+/**
+ * Reads an [Enum] value of type [T] from this [PacketBuffer]
+ */
+inline fun <reified T : Enum<T>> PacketBuffer.readEnumValue(): T = this.readEnumValue(T::class.java)
