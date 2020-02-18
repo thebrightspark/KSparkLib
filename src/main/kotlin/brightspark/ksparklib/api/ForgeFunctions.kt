@@ -1,6 +1,9 @@
 package brightspark.ksparklib.api
 
+import com.mojang.brigadier.arguments.ArgumentType
 import net.alexwells.kottle.FMLKotlinModLoadingContext
+import net.minecraft.command.arguments.ArgumentSerializer
+import net.minecraft.command.arguments.ArgumentTypes
 import net.minecraft.item.ItemStack
 import net.minecraft.item.crafting.Ingredient
 import net.minecraft.nbt.CompoundNBT
@@ -164,6 +167,28 @@ fun regSimpleChannel(
 	NetworkRegistry.newSimpleChannel(name, { protocolVersion }, clientAcceptedVersions, serverAcceptedVersions).apply {
 		messages.forEachIndexed { index, kClass -> registerMessage(kClass, index) }
 	}
+
+/**
+ * Registers a new [ArgumentType] with the given [id]
+ * Note that this method requires the [ArgumentType] [T] to be a Kotlin Object
+ */
+inline fun <reified T : ArgumentType<out Any>> regCommandArgType(id: String) {
+	val instance = T::class.objectInstance
+		?: throw RuntimeException("The argument type ${T::class.qualifiedName} must be a Kotlin Object!")
+	ArgumentTypes.register(id, T::class.java, ArgumentSerializer { instance })
+}
+
+/**
+ * Registers a new [ArgumentType] with the given [id] which creates an [ArgumentSerializer] using the [instance]
+ */
+fun regCommandArgType(id: String, instance: ArgumentType<out Any>): Unit =
+	ArgumentTypes.register(id, instance.javaClass, ArgumentSerializer { instance })
+
+/**
+ * Registers a new [ArgumentType] with the given [id] and [serializer]
+ */
+inline fun <reified T : ArgumentType<out Any>> regCommandArgType(id: String, serializer: ArgumentSerializer<T>): Unit =
+	ArgumentTypes.register(id, T::class.java, serializer)
 
 /**
  * Creates a new [NonNullList] with the given [stacks]
