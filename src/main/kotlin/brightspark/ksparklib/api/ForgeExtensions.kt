@@ -14,6 +14,8 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import net.minecraft.util.text.ITextComponent
+import net.minecraft.util.text.StringTextComponent
+import net.minecraft.util.text.TextFormatting
 import net.minecraft.util.text.TranslationTextComponent
 import net.minecraft.world.World
 import net.minecraft.world.chunk.Chunk
@@ -190,11 +192,25 @@ fun SimpleChannel.sendToNetworkManagers(message: Message, vararg networkManagers
 fun SimpleChannel.sendToAll(message: Message): Unit = this.send(PacketDistributor.ALL.noArg(), message)
 
 /**
+ * Adds a new [StringTextComponent] to the end of the sibling list, with the specified [obj] Same as calling
+ * [ITextComponent.appendText] and giving it the result of calling [Any.toString] on [obj].
+ */
+fun ITextComponent.appendText(obj: Any): ITextComponent = this.appendText(obj.toString())
+
+/**
  * Adds a new [TranslationTextComponent] to the end of the sibling list, with the specified translation key and
  * arguments. Same as calling [ITextComponent.appendSibling] with a new [TranslationTextComponent].
  */
 fun ITextComponent.appendTranslation(translationKey: String, vararg args: Any): ITextComponent =
 	this.appendSibling(TranslationTextComponent(translationKey, args))
+
+/**
+ * Adds a new [StringTextComponent] to the end of the sibling list, with the specified [text] and [styles].
+ * Same as calling [ITextComponent.appendSibling] with a new [StringTextComponent] and calling
+ * [ITextComponent.applyTextStyles] on that.
+ */
+fun ITextComponent.appendStyledText(text: String, vararg styles: TextFormatting): ITextComponent =
+	this.appendSibling(StringTextComponent(text).applyTextStyles(*styles))
 
 /**
  * Reads an [Enum] value of type [T] from this [PacketBuffer]
