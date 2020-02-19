@@ -1,7 +1,5 @@
 package brightspark.ksparklib.api
 
-import com.mojang.brigadier.CommandDispatcher
-import net.minecraft.command.CommandSource
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.ServerPlayerEntity
@@ -216,9 +214,3 @@ fun ITextComponent.appendStyledText(text: String, vararg styles: TextFormatting)
  * Reads an [Enum] value of type [T] from this [PacketBuffer]
  */
 inline fun <reified T : Enum<T>> PacketBuffer.readEnumValue(): T = this.readEnumValue(T::class.java)
-
-/**
- * Registers all [commands] to this [CommandDispatcher]
- */
-fun CommandDispatcher<CommandSource>.registerCommands(vararg commands: Command): Unit =
-	commands.forEach { this.register(it.builder) }
