@@ -19,16 +19,14 @@ fun Command.literal(name: String, block: LiteralArgumentBuilder<CommandSource>.(
 
 fun <T : ArgumentBuilder<CommandSource, T>> T.thenLiteral(
 	name: String,
-	literalBlock: LiteralArgumentBuilder<CommandSource>.() -> Unit,
-	thenBlock: T.() -> Unit = {}
-): T = this.then(Commands.literal(name).apply(literalBlock)).apply(thenBlock)
+	block: LiteralArgumentBuilder<CommandSource>.() -> Unit
+): T = this.then(Commands.literal(name).apply(block))
 
 fun <T : ArgumentBuilder<CommandSource, T>, ARG> T.thenArgument(
 	argumentName: String,
 	argument: ArgumentType<ARG>,
-	argumentBlock: RequiredArgumentBuilder<CommandSource, ARG>.() -> Unit,
-	thenBlock: T.() -> Unit = {}
-): T = this.then(Commands.argument(argumentName, argument).apply(argumentBlock)).apply(thenBlock)
+	block: RequiredArgumentBuilder<CommandSource, ARG>.() -> Unit
+): T = this.then(Commands.argument(argumentName, argument).apply(block))
 
 fun <T : ArgumentBuilder<CommandSource, T>> T.thenCommand(command: Command, block: T.() -> Unit = {}): T =
 	this.then(command.builder).apply(block)
