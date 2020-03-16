@@ -173,8 +173,7 @@ fun regSimpleChannel(
  * Note that this method requires the [ArgumentType] [T] to be a Kotlin Object
  */
 inline fun <reified T : ArgumentType<out Any>> regCommandArgType(id: String) {
-	val instance = T::class.objectInstance
-		?: throw RuntimeException("The argument type ${T::class.qualifiedName} must be a Kotlin Object!")
+	val instance = requireNotNull(T::class.objectInstance) { "The argument type ${T::class.qualifiedName} must be a Kotlin Object!" }
 	ArgumentTypes.register(id, T::class.java, ArgumentSerializer { instance })
 }
 
