@@ -2,8 +2,11 @@ package brightspark.ksparklib.api
 
 import com.mojang.brigadier.arguments.ArgumentType
 import net.alexwells.kottle.FMLKotlinModLoadingContext
+import net.minecraft.block.Block
 import net.minecraft.command.arguments.ArgumentSerializer
 import net.minecraft.command.arguments.ArgumentTypes
+import net.minecraft.item.BlockItem
+import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.item.crafting.Ingredient
 import net.minecraft.nbt.CompoundNBT
@@ -17,6 +20,7 @@ import net.minecraftforge.common.capabilities.CapabilityManager
 import net.minecraftforge.common.capabilities.ICapabilityProvider
 import net.minecraftforge.common.util.INBTSerializable
 import net.minecraftforge.event.AttachCapabilitiesEvent
+import net.minecraftforge.event.RegistryEvent
 import net.minecraftforge.eventbus.api.Event
 import net.minecraftforge.eventbus.api.EventPriority
 import net.minecraftforge.eventbus.api.GenericEvent
@@ -26,6 +30,7 @@ import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.config.ModConfig
 import net.minecraftforge.fml.network.NetworkRegistry
 import net.minecraftforge.fml.network.simple.SimpleChannel
+import net.minecraftforge.registries.IForgeRegistryEntry
 import java.util.concurrent.Callable
 import java.util.function.Supplier
 import kotlin.reflect.KClass
@@ -87,6 +92,50 @@ inline fun <reified T : GenericEvent<out F>, reified F> addForgeGenericListener(
  * @see InterModComms.sendTo
  */
 fun <T : Any?> sendIMC(modId: String, method: String, thing: () -> T): Boolean = InterModComms.sendTo(modId, method, thing)
+
+/**
+ * Registers content of the type [T] and sets the registry name of each using the [modId].
+ * Each entry in [content] is a [Pair] where the [String] is the registry name path and the [T] is the object to
+ * register.
+ */
+inline fun <reified T : IForgeRegistryEntry<T>> registerContent(modId: String, vararg content: Pair<String, T>): Unit =
+	addModGenericListener<RegistryEvent.Register<T>, T> { event ->
+		event.registry.run {
+			content.forEach {
+				register(it.second.setRegistryName(ResourceLocation(modId, it.first)))
+			}
+		}
+	}
+
+/**
+ * Registers content of the type [T] and sets the registry name of each using the [modId] and executes the function
+ * [forEach] on each value before registering.
+ * Each entry in [content] is a [Pair] where the [String] is the registry name path and the [T] is the object to
+ * register.
+ */
+inline fun <reified T : IForgeRegistryEntry<T>> registerContent(modId: String, crossinline forEach: (T) -> Unit, vararg content: Pair<String, T>): Unit =
+	addModGenericListener<RegistryEvent.Register<T>, T> { event ->
+		val registry = event.registry
+		content.forEach {
+			registry.register(it.second.setRegistryName(ResourceLocation(modId, it.first)).also(forEach))
+		}
+	}
+
+/**
+ * Registers the given [blocks] and sets the registry name of each using the [modId].
+ * Each entry in [blocks] is a [Pair] where the [String] is the registry name path and the [Block] is the block to
+ * register.
+ * This method also registers [BlockItem]s for each block, and calls [itemProperties] for each item's properties.
+ */
+fun registerBlocks(modId: String, itemProperties: (name: String, block: Block, props: Item.Properties) -> Unit, vararg blocks: Pair<String, Block>) {
+	registerContent(modId, *blocks)
+	addModGenericListener<RegistryEvent.Register<Item>, Item> { event ->
+		event.registry.run {
+			blocks.map { pair -> BlockItem(pair.second, Item.Properties().also { itemProperties(pair.first, pair.second, it) }).setRegistryName(ResourceLocation(modId, pair.first)) }
+				.forEach { register(it) }
+		}
+	}
+}
 
 /**
  * Registers [ForgeConfigSpec] instances for [client], [common] and [server]
