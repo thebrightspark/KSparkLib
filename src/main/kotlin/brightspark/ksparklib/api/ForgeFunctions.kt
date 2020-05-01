@@ -26,7 +26,9 @@ import net.minecraftforge.eventbus.api.EventPriority
 import net.minecraftforge.eventbus.api.GenericEvent
 import net.minecraftforge.fml.DistExecutor
 import net.minecraftforge.fml.InterModComms
+import net.minecraftforge.fml.LogicalSide
 import net.minecraftforge.fml.ModLoadingContext
+import net.minecraftforge.fml.common.thread.EffectiveSide
 import net.minecraftforge.fml.config.ModConfig
 import net.minecraftforge.fml.network.NetworkRegistry
 import net.minecraftforge.fml.network.simple.SimpleChannel
@@ -259,34 +261,52 @@ fun ingredientList(vararg ingredients: Ingredient) = NonNullList.from(Ingredient
 fun ingredientList(ingredients: Collection<Ingredient>) = ingredientList(*ingredients.toTypedArray())
 
 /**
+ * Runs the [op] when on the [side]
+ */
+inline fun runWhenOnSide(side: LogicalSide, op: () -> Unit) {
+	if (EffectiveSide.get() == side)
+		op()
+}
+
+/**
+ * Runs the [op] when on [LogicalSide.CLIENT]
+ */
+inline fun runWhenOnClientSide(op: () -> Unit): Unit = runWhenOnSide(LogicalSide.CLIENT, op)
+
+/**
+ * Runs the [op] when on [LogicalSide.SERVER]
+ */
+inline fun runWhenOnServerSide(op: () -> Unit): Unit = runWhenOnSide(LogicalSide.SERVER, op)
+
+/**
  * Runs the [op] when on the [dist]
  */
-fun runWhenOn(dist: Dist, op: () -> Unit): Unit = DistExecutor.runWhenOn(dist) { Runnable(op) }
+fun runWhenOnDist(dist: Dist, op: () -> Unit): Unit = DistExecutor.runWhenOn(dist) { Runnable(op) }
 
 /**
  * Runs the [op] when on [Dist.CLIENT]
  */
-fun runWhenOnClient(op: () -> Unit): Unit = DistExecutor.runWhenOn(Dist.CLIENT) { Runnable(op) }
+fun runWhenOnClientDist(op: () -> Unit): Unit = DistExecutor.runWhenOn(Dist.CLIENT) { Runnable(op) }
 
 /**
  * Runs the [op] when on [Dist.DEDICATED_SERVER]
  */
-fun runWhenOnServer(op: () -> Unit): Unit = DistExecutor.runWhenOn(Dist.DEDICATED_SERVER) { Runnable(op) }
+fun runWhenOnServerDist(op: () -> Unit): Unit = DistExecutor.runWhenOn(Dist.DEDICATED_SERVER) { Runnable(op) }
 
 /**
  * Runs and returns the result of the [op] when on the [dist]
  */
-fun <R> callWhenOn(dist: Dist, op: () -> R): R = DistExecutor.callWhenOn(dist) { Callable(op) }
+fun <R> callWhenOnDist(dist: Dist, op: () -> R): R = DistExecutor.callWhenOn(dist) { Callable(op) }
 
 /**
  * Runs and returns the result of the [op] when on [Dist.CLIENT]
  */
-fun <R> callWhenOnClient(op: () -> R): R = DistExecutor.callWhenOn(Dist.CLIENT) { Callable(op) }
+fun <R> callWhenOnClientDist(op: () -> R): R = DistExecutor.callWhenOn(Dist.CLIENT) { Callable(op) }
 
 /**
  * Runs and returns the result of the [op] when on [Dist.DEDICATED_SERVER]
  */
-fun <R> callWhenOnServer(op: () -> R): R = DistExecutor.callWhenOn(Dist.DEDICATED_SERVER) { Callable(op) }
+fun <R> callWhenOnServerDist(op: () -> R): R = DistExecutor.callWhenOn(Dist.DEDICATED_SERVER) { Callable(op) }
 
 /**
  * Runs and returns the result of the appropriate operation ([clientOp] or [serverOp]) depending on the distribution
