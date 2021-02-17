@@ -1,7 +1,6 @@
-package brightspark.ksparklib.api
+package brightspark.ksparklib.api.extensions
 
 import kotlin.reflect.KType
-import kotlin.reflect.full.isSubtypeOf
 import kotlin.reflect.full.starProjectedType
 
 /**

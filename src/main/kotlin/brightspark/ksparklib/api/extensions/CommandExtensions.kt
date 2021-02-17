@@ -1,5 +1,6 @@
-package brightspark.ksparklib.api
+package brightspark.ksparklib.api.extensions
 
+import brightspark.ksparklib.api.Command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.ArgumentType
 import com.mojang.brigadier.builder.ArgumentBuilder
@@ -13,9 +14,6 @@ import net.minecraft.command.Commands
  */
 fun CommandDispatcher<CommandSource>.register(vararg commands: Command): Unit =
 	commands.forEach { this.register(it.builder) }
-
-fun Command.literal(name: String, block: LiteralArgumentBuilder<CommandSource>.() -> Unit): LiteralArgumentBuilder<CommandSource> =
-	Commands.literal(name).apply(block)
 
 fun <T : ArgumentBuilder<CommandSource, T>> T.thenLiteral(
 	name: String,

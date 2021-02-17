@@ -1,4 +1,4 @@
-modLoader="kotlinfml"
+modLoader="kotlinforforge"
 loaderVersion="[1,)"
 issueTrackerURL="https://github.com/thebrightspark/KSparkLib/issues"
 
@@ -14,13 +14,20 @@ issueTrackerURL="https://github.com/thebrightspark/KSparkLib/issues"
 [[dependencies.ksparklib]]
     modId="forge"
     mandatory=true
-    versionRange="[28,)"
+    versionRange="[35,)"
     ordering="NONE"
     side="BOTH"
 
 [[dependencies.ksparklib]]
     modId="minecraft"
     mandatory=true
-    versionRange="[1.14.4]"
+    versionRange="[1.16.4]"
     ordering="NONE"
+    side="BOTH"
+
+[[dependencies.ksparklib]]
+    modId="kotlinforforge"
+    mandatory=true
+    versionRange="[1,)"
+    ordering="BEFORE"
     side="BOTH"

@@ -1,7 +1,7 @@
 package brightspark.ksparklib.api
 
+import brightspark.ksparklib.api.extensions.registerMessage
 import com.mojang.brigadier.arguments.ArgumentType
-import net.alexwells.kottle.FMLKotlinModLoadingContext
 import net.minecraft.block.Block
 import net.minecraft.command.arguments.ArgumentSerializer
 import net.minecraft.command.arguments.ArgumentTypes
@@ -12,9 +12,6 @@ import net.minecraft.item.crafting.Ingredient
 import net.minecraft.nbt.CompoundNBT
 import net.minecraft.util.NonNullList
 import net.minecraft.util.ResourceLocation
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.common.ForgeConfigSpec
-import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.common.capabilities.Capability
 import net.minecraftforge.common.capabilities.CapabilityManager
 import net.minecraftforge.common.capabilities.ICapabilityProvider
@@ -24,30 +21,16 @@ import net.minecraftforge.event.RegistryEvent
 import net.minecraftforge.eventbus.api.Event
 import net.minecraftforge.eventbus.api.EventPriority
 import net.minecraftforge.eventbus.api.GenericEvent
-import net.minecraftforge.fml.DistExecutor
 import net.minecraftforge.fml.InterModComms
 import net.minecraftforge.fml.LogicalSide
-import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.thread.EffectiveSide
-import net.minecraftforge.fml.config.ModConfig
 import net.minecraftforge.fml.network.NetworkRegistry
 import net.minecraftforge.fml.network.simple.SimpleChannel
 import net.minecraftforge.registries.IForgeRegistryEntry
-import java.util.concurrent.Callable
-import java.util.function.Supplier
+import thedarkcolour.kotlinforforge.forge.FORGE_BUS
+import thedarkcolour.kotlinforforge.forge.MOD_CONTEXT
 import kotlin.reflect.KClass
 import kotlin.reflect.full.createInstance
-
-/**
- * Registers the [target] object to the event bus
- */
-fun forgeEventBusRegister(target: Any): Unit = MinecraftForge.EVENT_BUS.register(target)
-
-/**
- * Registers the class [T] to the event bus
- */
-inline fun <reified T : Any> forgeEventBusRegister(): Unit =
-	forgeEventBusRegister(T::class.run { objectInstance ?: java })
 
 /**
  * Registers the [function] as an event listener for the event type [T] with the given optional [priority] and
@@ -57,7 +40,7 @@ inline fun <reified T : Event> addModListener(
 	priority: EventPriority = EventPriority.NORMAL,
 	receiveCancelled: Boolean = false,
 	noinline function: (T) -> Unit
-): Unit = FMLKotlinModLoadingContext.get().modEventBus.addListener(priority, receiveCancelled, T::class.java, function)
+): Unit = MOD_CONTEXT.getKEventBus().addListener(priority, receiveCancelled, T::class.java, function)
 
 /**
  * Registers the [function] as a generic event listener for the event type [T] with class filter type [F] with the given
@@ -67,7 +50,8 @@ inline fun <reified T : GenericEvent<out F>, reified F> addModGenericListener(
 	priority: EventPriority = EventPriority.NORMAL,
 	receiveCancelled: Boolean = false,
 	noinline function: (T) -> Unit
-): Unit = FMLKotlinModLoadingContext.get().modEventBus.addGenericListener(F::class.java, priority, receiveCancelled, T::class.java, function)
+): Unit =
+	MOD_CONTEXT.getKEventBus().addGenericListener(F::class.java, priority, receiveCancelled, T::class.java, function)
 
 /**
  * Registers the [function] as an event listener for the event type [T] with the given optional [priority] and
@@ -77,7 +61,7 @@ inline fun <reified T : Event> addForgeListener(
 	priority: EventPriority = EventPriority.NORMAL,
 	receiveCancelled: Boolean = false,
 	noinline function: (T) -> Unit
-): Unit = MinecraftForge.EVENT_BUS.addListener(priority, receiveCancelled, T::class.java, function)
+): Unit = FORGE_BUS.addListener(priority, receiveCancelled, T::class.java, function)
 
 /**
  * Registers the [function] as a generic event listener for the event type [T] with class filter type [F] with the given
@@ -87,7 +71,7 @@ inline fun <reified T : GenericEvent<out F>, reified F> addForgeGenericListener(
 	priority: EventPriority = EventPriority.NORMAL,
 	receiveCancelled: Boolean = false,
 	noinline function: (T) -> Unit
-): Unit = MinecraftForge.EVENT_BUS.addGenericListener(F::class.java, priority, receiveCancelled, T::class.java, function)
+): Unit = FORGE_BUS.addGenericListener(F::class.java, priority, receiveCancelled, T::class.java, function)
 
 /**
  * Sends an IMC to the mod [modId]
@@ -136,17 +120,6 @@ fun registerBlocks(modId: String, itemProperties: (name: String, block: Block, p
 			blocks.map { pair -> BlockItem(pair.second, Item.Properties().also { itemProperties(pair.first, pair.second, it) }).setRegistryName(ResourceLocation(modId, pair.first)) }
 				.forEach { register(it) }
 		}
-	}
-}
-
-/**
- * Registers [ForgeConfigSpec] instances for [client], [common] and [server]
- */
-fun registerConfig(client: ForgeConfigSpec? = null, common: ForgeConfigSpec? = null, server: ForgeConfigSpec? = null) {
-	ModLoadingContext.get().apply {
-		client?.let { registerConfig(ModConfig.Type.CLIENT, it) }
-		common?.let { registerConfig(ModConfig.Type.COMMON, it) }
-		server?.let { registerConfig(ModConfig.Type.SERVER, it) }
 	}
 }
 
@@ -211,8 +184,8 @@ inline fun <reified CAP : INBTSerializable<CompoundNBT>, reified ATTACH, reified
 fun regSimpleChannel(
 	name: ResourceLocation,
 	protocolVersion: String,
-	clientAcceptedVersions: (String) -> Boolean = { it == protocolVersion },
-	serverAcceptedVersions: (String) -> Boolean = { it == protocolVersion },
+	clientAcceptedVersions: (String) -> Boolean = protocolVersion::equals,
+	serverAcceptedVersions: (String) -> Boolean = protocolVersion::equals,
 	messages: Array<KClass<out Message>>
 ): SimpleChannel =
 	NetworkRegistry.newSimpleChannel(name, { protocolVersion }, clientAcceptedVersions, serverAcceptedVersions).apply {
@@ -231,8 +204,11 @@ inline fun <reified T : ArgumentType<out Any>> regCommandArgType(id: String) {
 /**
  * Registers a new [ArgumentType] with the given [id] which creates an [ArgumentSerializer] using the [instance]
  */
-fun regCommandArgType(id: String, instance: ArgumentType<out Any>): Unit =
-	ArgumentTypes.register(id, instance.javaClass, ArgumentSerializer { instance })
+fun <T : Any> regCommandArgType(
+	id: String,
+	instance: ArgumentType<T>,
+	serializer: ArgumentSerializer<ArgumentType<T>> = ArgumentSerializer { instance }
+): Unit = ArgumentTypes.register(id, instance.javaClass, serializer)
 
 /**
  * Registers a new [ArgumentType] with the given [id] and [serializer]
@@ -263,7 +239,7 @@ fun ingredientList(ingredients: Collection<Ingredient>) = ingredientList(*ingred
 /**
  * Runs the [op] when on the [side]
  */
-inline fun runWhenOnSide(side: LogicalSide, op: () -> Unit) {
+fun runWhenOnLogical(side: LogicalSide, op: () -> Unit) {
 	if (EffectiveSide.get() == side)
 		op()
 }
@@ -271,45 +247,9 @@ inline fun runWhenOnSide(side: LogicalSide, op: () -> Unit) {
 /**
  * Runs the [op] when on [LogicalSide.CLIENT]
  */
-inline fun runWhenOnClientSide(op: () -> Unit): Unit = runWhenOnSide(LogicalSide.CLIENT, op)
+fun runWhenOnLogicalClient(op: () -> Unit): Unit = runWhenOnLogical(LogicalSide.CLIENT, op)
 
 /**
  * Runs the [op] when on [LogicalSide.SERVER]
  */
-inline fun runWhenOnServerSide(op: () -> Unit): Unit = runWhenOnSide(LogicalSide.SERVER, op)
-
-/**
- * Runs the [op] when on the [dist]
- */
-fun runWhenOnDist(dist: Dist, op: () -> Unit): Unit = DistExecutor.runWhenOn(dist) { Runnable(op) }
-
-/**
- * Runs the [op] when on [Dist.CLIENT]
- */
-fun runWhenOnClientDist(op: () -> Unit): Unit = DistExecutor.runWhenOn(Dist.CLIENT) { Runnable(op) }
-
-/**
- * Runs the [op] when on [Dist.DEDICATED_SERVER]
- */
-fun runWhenOnServerDist(op: () -> Unit): Unit = DistExecutor.runWhenOn(Dist.DEDICATED_SERVER) { Runnable(op) }
-
-/**
- * Runs and returns the result of the [op] when on the [dist]
- */
-fun <R> callWhenOnDist(dist: Dist, op: () -> R): R = DistExecutor.callWhenOn(dist) { Callable(op) }
-
-/**
- * Runs and returns the result of the [op] when on [Dist.CLIENT]
- */
-fun <R> callWhenOnClientDist(op: () -> R): R = DistExecutor.callWhenOn(Dist.CLIENT) { Callable(op) }
-
-/**
- * Runs and returns the result of the [op] when on [Dist.DEDICATED_SERVER]
- */
-fun <R> callWhenOnServerDist(op: () -> R): R = DistExecutor.callWhenOn(Dist.DEDICATED_SERVER) { Callable(op) }
-
-/**
- * Runs and returns the result of the appropriate operation ([clientOp] or [serverOp]) depending on the distribution
- */
-fun <R> runForDist(clientOp: () -> R, serverOp: () -> R): R =
-	DistExecutor.runForDist({ Supplier(clientOp) }, { Supplier(serverOp) })
+fun runWhenOnLogicalServer(op: () -> Unit): Unit = runWhenOnLogical(LogicalSide.SERVER, op)

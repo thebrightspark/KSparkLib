@@ -1,5 +1,4 @@
 buildscript {
-    ext.kotlin_version = '1.3.61'
     repositories {
         maven { url = 'https://files.minecraftforge.net/maven' }
         jcenter()
@@ -8,19 +7,14 @@ buildscript {
     }
     dependencies {
         classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
-//        classpath(group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true) {
-//            exclude group: 'trove', module: 'trove'
-//        }
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath group: 'com.wynprice.cursemaven', name: 'CurseMaven', version: '2.1.1'
+        classpath group: 'org.jetbrains.kotlin', name: 'kotlin-gradle-plugin', version: '1.4.30'
     }
 }
 apply plugin: 'net.minecraftforge.gradle'
 // Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
-apply plugin: 'kotlin'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
-apply plugin: 'com.wynprice.cursemaven'
+apply plugin: 'kotlin'
 
 version = "${project.mc_version}-${project.mod_version}"
 group = project.base_package // http://maven.apache.org/guides/mini/guide-naming-conventions.html
@@ -67,25 +61,15 @@ minecraft {
                 }
             }
         }
-
-        data {
-            workingDirectory project.file('run')
-            // Recommended logging data for a userdev environment
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-            // Recommended logging level for the console
-            property 'forge.logging.console.level', 'debug'
-            args '--mod', project.name, '--all', '--output', file('src/generated/resources/')
-            mods {
-                ksparklib {
-                    source sourceSets.main
-                }
-            }
-        }
     }
 }
 
 repositories {
     mavenCentral()
+    maven {
+        name = 'kotlinforforge'
+        url = 'https://thedarkcolour.github.io/KotlinForForge/'
+    }
 }
 
 dependencies {
@@ -94,8 +78,8 @@ dependencies {
     // The userdev artifact is a special name and will get all sorts of transformations applied to it.
     minecraft "net.minecraftforge:forge:${project.mc_version}-${project.forge_version}"
 
-    implementation group: 'curse.maven', name: 'kottle', version: project.kottle_version
-    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
+    api "thedarkcolour:kotlinforforge:${project.kotlinforforge_version}"
+//    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect'
 
     // You may put jars on which you depend on in ./libs or you may define them like so..
@@ -134,14 +118,11 @@ jar {
 }
 
 // Example configuration to allow publishing using the maven-publish task
-// we define a custom artifact that is sourced from the reobfJar output task
-// and then declare that to be published
-// Note you'll need to add a repository here
-//def reobfFile = file("$buildDir/reobfJar/output.jar")
-//def reobfArtifact = artifacts.add('default', reobfFile) {
-//    type 'jar'
-//    builtBy 'reobfJar'
-//}
+// This is the preferred method to reobfuscate your jar file
+jar.finalizedBy('reobfJar')
+// However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing
+//publish.dependsOn('reobfJar')
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
